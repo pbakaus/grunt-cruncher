@@ -72,6 +72,6 @@ would output:
 ```html
 <html>
 <script>alert('foo');</script>
-<style>body{ background-image:url(data:image/png;base64.......);}</style>
+<style>body{background-image:url(data:image/png;base64.......);}</style>
 </html>
 ```
