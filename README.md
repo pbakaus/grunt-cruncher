@@ -152,3 +152,69 @@ files: [
 	}
 ]
 ```
+
+### Usage Example
+
+Given this directory structure:
+build/
+source/
+	css/
+	img/
+	js/
+	partials/
+		non-retina/ 
+			partial.html
+			css/
+			img/
+		retina/ 
+			partial.html
+			css/
+			img/
+		pirate-version/ 
+			partial.html
+			css/
+			img/
+	templates/
+		index.html
+		generated/
+			index.built.html
+		
+```js
+inlineEverything: {
+	templates: {
+		options: {
+			relativeTo: 'source',
+			partials: ['non-retina', 'retina', 'pirate-version'],
+			tags: {
+				link: false,
+				script: {
+					rename: function(fileName) {
+
+						var extensionStart = fileName.lastIndexOf('.js');
+						var firstHalf = fileName.substr(0, extensionStart);
+						var secondHalf = fileName.substr(extensionStart);
+
+						return firstHalf + secondHalf;
+					}
+				}
+			}
+		},
+
+		files: [
+			{
+				expand: true,
+				cwd: SOURCE_FOLDER + '/templates/generated',
+				src: '*.built.html',
+				dest: 'build'
+			},
+			{
+				expand: true,
+				cwd: SOURCE_FOLDER + '/partials',
+				src: '*/partial.html',
+				dest: 'build/partials'
+			}
+		]
+
+	}
+}
+```
