@@ -1,7 +1,7 @@
 {
   "name": "grunt-cruncher",
   "description": "Crunches every dependency of your web app into a single distributable file structure.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "",
   "author": {
     "name": "Zynga",
