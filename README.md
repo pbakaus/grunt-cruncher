@@ -139,7 +139,7 @@ Default: false
 ### Files
 Type: `Array`
 Default: []
-This is a n array of Objects pointing to the directories you want scanned for inlining.
+This is an array of Objects pointing to the directories you want scanned for inlining.
 
 ##### For example:
 ```js
