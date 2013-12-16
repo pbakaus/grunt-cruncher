@@ -5,7 +5,7 @@ Crunches every dependency of your web app into a single distributable file struc
 
 Tasks:
 
-#### processConfig
+## processConfig
 
 This task runs through a source config file and generates out a series of config files for use in your application.
 It supports comments and privates.
@@ -54,3 +54,24 @@ less: {
 ```
 
 This example outputs two configs in JSON format, and also outputs a Config.js file that wraps the JSON in a Zynga core Module.
+
+## inlineEverything
+
+This task takes an HTML file(s) containing CSS, Javascript and Image Assets, and output Vendor-Permutated HTML with all of this content inlined (what else did you expect?) Images are base64 encoded and served inlined as well. It also supports multiple partials, say, for example: Retina and Non-Retina Asset Packs.
+
+For example:
+
+```html
+<html>
+<script src="MyApp.js"></script>
+<link href="MyStyles.css" rel="stylesheet" type="text/css">
+</html>
+```
+
+would output:
+```html
+<html>
+<script>alert('foo');</script>
+<style>body{background-image:url(data:image/png;base64.......);}</style>
+</html>
+```
