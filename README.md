@@ -156,6 +156,7 @@ files: [
 ### Usage Example
 
 Given this directory structure:
+<pre>
 build/
 source/
 	css/
@@ -178,7 +179,7 @@ source/
 		index.html
 		generated/
 			index.built.html
-		
+</pre>	
 ```js
 inlineEverything: {
 	templates: {
