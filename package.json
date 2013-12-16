@@ -1,0 +1,42 @@
+{
+  "name": "grunt-cruncher",
+  "description": "Crunches every dependency of your web app into a single distributable file structure.",
+  "version": "0.1.0",
+  "homepage": "",
+  "author": {
+    "name": "Zynga",
+    "email": "studio5@zynga.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/zynga/grunt-cruncher.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "/blob/master/LICENSE-MIT"
+    }
+  ],
+  "main": "Gruntfile.js",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "dependencies": {
+    "colors": "*",
+    "groundskeeper": "*",
+    "extend": "*"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-clean": "~0.4.0"
+  },
+  "peerDependencies": {
+    "grunt": "~0.4.1"
+  },
+  "keywords": [
+    "gruntplugin"
+  ]
+}
