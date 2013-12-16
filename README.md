@@ -3,7 +3,7 @@ grunt-cruncher
 
 Crunches every dependency of your web app into a single distributable file structure.
 
-Tasks:
+# Tasks:
 
 ## processConfig
 
@@ -27,30 +27,28 @@ Finally, it can output a javascript file that can be wrapped into any framework 
 ### Usage Example
 
 ```js
-less: {
-  processConfig: {
-			source: {
-				options: {
-					src: 'PATH/TO/YOUR/CONFIGS/config.json',
-					destinations: [
-						{
-							type: 'private',
-							path: 'PATH/TO/YOUR/CONFIGS/gen/private.json'
-						},
-						{
-							type: 'public',
-							path: 'PATH/TO/YOUR/CONFIGS/gen/public.json'
-						},
-						{
-							type: 'public',
-							path: 'PATH/TO/YOUR/CLASSES/Config.js',
-							wrapper: "/******* GENERATED, DO NOT MODIFY *******/\n core.Module('<%= pkg.name %>.Config', $CONFIG);"
-						}
-					]
-				}
+processConfig: {
+	source: {
+		options: {
+			src: 'PATH/TO/YOUR/CONFIGS/config.json',
+				destinations: [
+					{
+						type: 'private',
+						path: 'PATH/TO/YOUR/CONFIGS/gen/private.json'
+					},
+					{
+						type: 'public',
+						path: 'PATH/TO/YOUR/CONFIGS/gen/public.json'
+					},
+					{
+						type: 'public',
+						path: 'PATH/TO/YOUR/CLASSES/Config.js',
+						wrapper: "/******* GENERATED, DO NOT MODIFY *******/\n core.Module('<%= pkg.name %>.Config', $CONFIG);"
+					}
+				]
 			}
-		},
-}
+		}
+	}
 ```
 
 This example outputs two configs in JSON format, and also outputs a Config.js file that wraps the JSON in a Zynga core Module.
@@ -74,4 +72,83 @@ would output:
 <script>alert('foo');</script>
 <style>body{background-image:url(data:image/png;base64.......);}</style>
 </html>
+```
+
+### Options
+
+#### relativeTo
+Type: `String`
+
+Default: `source`
+
+The location all of your partials are relative to.
+For example: "source".
+
+### partials
+Type: `Array`
+Default: []
+
+The different HTML partials you want to inline.
+For example: "non-retina", "retina".
+
+### tags
+Type: `Object`
+Default: {}
+
+#### link
+Type: `Boolean|Object`
+Default: false
+     
+ * engines
+   This specifically allows fine control over Generated CSS Permutations.
+   It is used in conjuction with our Vendor Permutator.
+   When false, it just inlines.
+     
+   ##### For example:
+   If you add an array of "engines" ['webkit','trident'] to "tags.link", it will create vendor-specific permutations (NAME.webkit.css, NAME.trident.css).
+
+```js
+link: {
+	engines: ['webkit','trident','gecko']
+}
+```
+     
+ * rename
+   We commonly want to store these into unique folders, so:
+   If you add a rename function, you can rename your files however you want.
+   When false, just places them in the same location.
+     
+   ##### For example:
+   If you want the CSS to go into a /css/vendor directory, you would add "rename" to "tags.link":
+
+```js
+link: {
+	rename: function(src, engine) {
+		src = src.replace('/css/', '/css/vendor/').replace(/\.css$/, '.' + engine + '.css')
+		return src;
+	}
+}
+```
+
+#### script
+Type: `Object`
+Default: false
+
+ * rename
+
+### Files
+Type: `Array`
+Default: []
+This is a n array of Objects pointing to the directories you want scanned for inlining.
+
+##### For example:
+```js
+files: [
+	{
+		expand: true,
+		cwd: 'PATH/TO/YOUR/TEMPLATES',
+		src: '*.built.html',
+		dest: 'PATH/TO/YOUR/BUILD/'
+	}
+]
 ```
