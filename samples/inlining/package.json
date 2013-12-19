@@ -1,0 +1,8 @@
+{
+	"name": "inlining",
+	"version": "0.1.0",
+	"devDependencies": {
+		"grunt": "*",
+		"grunt-cruncher": "*"
+	}
+}

@@ -21,30 +21,11 @@ module.exports = function(grunt) {
 
 		// merge task-specific and/or target-specific options with these defaults.
 		var options = this.options({
-			relativeTo: 'source',
-			partials: ['1x', '2x', 'universal'],
+			relativeTo: '.',
 
 			tags: {
-				// fine control over the generated CSS permutations
-				link: {
-					engines: ['webkit', 'trident', 'gecko'],
-					rename: function(src, engine) {
-						src = src.replace('/css/', '/css/permutated/').replace(/\.css$/, '.' + engine + '.css')
-						return src;
-					}
-				},
-				// control over JS inlining
-				script: {
-					rename: function(fileName) {
-
-						var extensionStart = fileName.lastIndexOf('.js');
-						var firstHalf = fileName.substr(0, extensionStart);
-						var secondHalf = fileName.substr(extensionStart);
-
-						return firstHalf + secondHalf;
-					}
-
-				}
+				link: true,
+				script: true
 			}
 		});
 
@@ -75,16 +56,21 @@ module.exports = function(grunt) {
 
 				sheets.push(fileName);
 
-				if(options.tags.link && options.tags.link.rename) {
-					fileName = options.tags.link.rename(fileName, null);
+				if(options.tags.link && typeof options.tags.link === 'function') {
+					fileName = options.tags.link(fileName, null);
 				}
 				
 				var file = fs.readFileSync(path.join(options.relativeTo, fileName), 'utf8');
 				return '<style>' + file + '</style>';
 			};
 
-			var inlined = html.replace(/(\<link[^\>]+href\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*rel\=[\"\']stylesheet[\"\'][^\>]*\>)/g, replaceFn);
-			inlined = inlined.replace(/(\<link[^\>]*rel\=[\"\']stylesheet[\"\'][^\>]*href\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*\>)/g, replaceFn);
+			var inlined;
+			if(options.tags.link) {
+				inlined = html.replace(/(\<link[^\>]+href\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*rel\=[\"\']stylesheet[\"\'][^\>]*\>)/g, replaceFn);
+				inlined = inlined.replace(/(\<link[^\>]*rel\=[\"\']stylesheet[\"\'][^\>]*href\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*\>)/g, replaceFn);
+			} else {
+				inlined = html;
+			}
 
 			// remove old file if it exists..
 			if(fs.exists(dest)) {
@@ -104,10 +90,23 @@ module.exports = function(grunt) {
 
 		}
 
+		function getLinkFileName(fileName, engine) {
+
+			if(typeof options.tags.link === 'function') {
+				fileName = options.tags.link(fileName, engine);
+			} else {
+				fileName = fileName.replace(/\.css$/, '') + '.' + engine + '.css';
+			}
+
+			return path.join(options.relativeTo, fileName);
+		}
+
 		function createStylePermutedBuilds(dest, html, partialPath) {
 
-			var sheets = [], files = [];
-			options.tags.link.engines.forEach(function(engine, index) {
+			var sheets = [], files = [], engines = ['webkit', 'trident', 'gecko'];
+			engines.forEach(function(engine, index) {
+
+				var engineNotFound = false;
 
 				var replaceFn = function(full, start, fileName, end) {
 					
@@ -116,20 +115,24 @@ module.exports = function(grunt) {
 						fileName = doPartialMagicToFileName(fileName, partialPath);
 					}
 
-					if(index === 0) sheets.push(fileName);
+					fileName = getLinkFileName(fileName, engine);
 
-					if(options.tags.link.rename) {
-						fileName = options.tags.link.rename(fileName, engine);
-					} else {
-						fileName = fileName.replace(/\.css$/, '') + '.' + engine + '.css';
+					if(!fs.existsSync(fileName)) {
+						engineNotFound = true;
+						return '';
 					}
-					
-					var file = fs.readFileSync(path.join(options.relativeTo, fileName), 'utf8');
+
+					var file = fs.readFileSync(fileName, 'utf8');
 					return '<style>' + file + '</style>';
 				};
 
 				var permutation = html.replace(/(\<link[^\>]+href\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*rel\=[\"\']stylesheet[\"\'][^\>]*\>)/g, replaceFn);
 				permutation = permutation.replace(/(\<link[^\>]*rel\=[\"\']stylesheet[\"\'][^\>]*href\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*\>)/g, replaceFn);
+
+				// if the files haven't been located, skip that one
+				if(engineNotFound) {
+					return;
+				}
 
 				var newFileName = dest.replace(/\.html$/, '.' + engine + '.html');
 				files.push(newFileName);
@@ -147,14 +150,16 @@ module.exports = function(grunt) {
 
 			});
 
-			if(sheets.length)
-				grunt.log.writeln('  - inlined the following stylesheets (permutations: ' + grunt.log.wordlist(options.tags.link.engines, {color: '' }) + '): ', grunt.log.wordlist(sheets));
-
-			grunt.log.writeln('  - created the following style-permutated builds: '.green, grunt.log.wordlist(files, { color: 'green' }));
+			return files;
 
 		}
 
 		function inlineScriptTags(html, partialPath) {
+
+			// don't inline script tags if disabled
+			if(options.tags.script === false) {
+				return html;
+			}
 
 			var tags = [];
 			html = html.replace(/<script[^\>]+src\=[\"\'](?![^\"\']*\/\/)([^\"\']+)[\"\'][^\>]*\><\/script>/g, function(full, fileName) {
@@ -165,8 +170,8 @@ module.exports = function(grunt) {
 				}
 
 				fileName = path.join(options.relativeTo, fileName);
-				if(options.tags.script.rename) {
-					fileName = options.tags.script.rename(fileName);
+				if(typeof options.tags.script === 'function') {
+					fileName = options.tags.script(fileName);
 				}
 
 				tags.push(fileName);
@@ -257,12 +262,12 @@ module.exports = function(grunt) {
 			contents = inlineImageTags(contents, dirname);
 
 			// inline all CSS and create permutations of the file in the build/ folder
-			if(options.tags.link && options.tags.link.engines) {
-				createStylePermutedBuilds(file.dest, contents, dirname);
-			} else {
-				inlineLinkTags(file.dest, contents, dirname);
+			var permutedBuilds = createStylePermutedBuilds(file.dest, contents, dirname);
+			inlineLinkTags(file.dest, contents, dirname);
+
+			if(permutedBuilds.length) {
+				grunt.log.writeln('  - created additional style-permutated builds: '.green, grunt.log.wordlist(permutedBuilds, { color: 'green' }));
 			}
-			
 
 		});
 
