@@ -11,12 +11,6 @@
 
 'use strict';
 
-function stripComments(str) {
-	str = str
-		.replace(/(?:\/\*(?:[\s\S]*?)\*\/)|(?:[\s;]+\/\/(?:.*)$)/gm, '') // remove comments
-	return str;
-};
-
 function stripPrivates(str) {
 	str = str
 			.replace(/.*\/\/\s?private.*/g, '')
@@ -31,61 +25,85 @@ module.exports = function(grunt) {
 		var done = this.async();
 		var fs = require('fs');
 		var path = require('path');
+		var JSON5 = require('json5');
 
 		// merge task-specific and/or target-specific options with these defaults.
 		var options = this.options({
+			type: 'public',
+			wrapper: false
 		});
+
+		function createConfig(contents, dest, dirname) {
+
+			var collected = [];
+			var parse = function(file) {
+				if(options.type == 'public') {
+					file = stripPrivates(file);
+				}
+				return JSON5.parse(file);
+			};
+
+			var file, inherits = contents;
+			while(inherits) {
+
+				file = inherits.indexOf("\n") > -1 ? inherits : fs.readFileSync(inherits, 'utf8');
+
+				file = parse(file);
+				inherits = file['extends'] ? path.join(dirname, file['extends']) : null;
+				dirname = path.dirname(inherits);
+
+				collected.push(file);
+
+			}
+
+			collected.reverse();
+
+			// deep merge the inheritance chain
+			var result = grunt.util._.merge.apply(this, [{}].concat(collected));
+
+			// remove 'extends' from final output
+			delete result.extends;
+
+			// stringify
+			result = JSON.stringify(result);
+
+			if(options.wrapper) {
+				result = options.wrapper.replace('$CONFIG', result);
+			}
+
+			fs.writeFileSync(dest, result);
+			grunt.log.writeln('- wrote ' + options.type + ' JSON file to: ' + dest.cyan);
+
+		}
 
 		grunt.log.subhead('Parsing and generating config files...');
 
-		var publics = [], privates = [];
-		var parse = function(file) {
+		this.files.forEach(function(file) {
 
-			// create public JSON
-			var publicFile = stripPrivates(file);
-			publicFile = stripComments(publicFile).replace(/\,\s+([\}\]])/g, '$1');
-			publicFile = JSON.parse(publicFile);
+			grunt.log.writeln('- processing ', file.src, '...');
 
-			file = stripComments(file).replace(/\,\s+([\}\]])/g, '$1');
-			file = JSON.parse(file);
+			// get the contents of the source template(s)
+			var dirname;
+			var contents = file.src.filter(function(filepath) {
+					// Remove nonexistent files (it's up to you to filter or warn here).
+					if (!grunt.file.exists(filepath)) {
+						grunt.log.warn('\tSource file "' + filepath + '" not found.');
+						return false;
+					} else {
+						return true;
+					}
+				}).map(function(filepath) {
 
-			return [file, publicFile]
+					if(!dirname) {
+						dirname = path.dirname(filepath);
+					}
 
-		};
+					// Read and return the file's source.
+					return grunt.file.read(filepath);
+				}).join('\n');
 
 
-		var file, pair, inherits = options.src;
-		while(inherits) {
-
-			file = fs.readFileSync(inherits, 'utf8');
-			pair = parse(file);
-			inherits = pair[0]['extends'] ? path.join(path.dirname(inherits), pair[0]['extends']) : null;
-
-			privates.push(pair[0]);
-			publics.push(pair[1]);
-
-		};
-
-		privates.reverse();
-		publics.reverse();
-
-		var finalPrivate = JSON.stringify(grunt.util._.merge.apply(this, [{}].concat(privates)));
-		var finalPublic = JSON.stringify(grunt.util._.merge.apply(this, [{}].concat(publics)));
-
-		options.destinations.forEach(function(destination) {
-
-			var cp = destination.type === 'public' ? finalPublic : finalPrivate;
-
-			if(destination.wrapper) {
-				cp = destination.wrapper.replace('$CONFIG', cp);
-			}
-
-			if (destination.path) {
-				fs.writeFileSync(destination.path, cp);
-				grunt.log.writeln('- wrote ' + destination.type + ' JSON file to: ' + destination.path.cyan);
-			} else if (typeof destination.handler == "function") {
-				destination.handler(cp);
-			}
+			createConfig(contents, file.dest, dirname);
 
 		});
 

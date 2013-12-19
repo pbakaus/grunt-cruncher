@@ -1,0 +1,4 @@
+{
+	/* this file is the root and is inherited from config.json */
+	"iGetDeepExtended": "IntoTheFinalConfig"
+}

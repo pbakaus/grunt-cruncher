@@ -7,4 +7,6 @@ ehthumbs.db
 Thumbs.db
 
 *.crunched.html
-samples/**/node_modules
+*.private.json
+*.public.json
+node_modules

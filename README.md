@@ -22,7 +22,7 @@ grunt.loadNpmTasks('grunt-cruncher');
 
 ## processConfig
 
-This task runs through a source config file and generates out a series of config files for use in your application.
+This task runs through a source config file and generates a consumable config file for use in your application.
 It supports comments and privates.
 
 For example, our source config file looks like this:
@@ -35,7 +35,7 @@ For example, our source config file looks like this:
 }
 ```
 
-processConfig can split out two versions of the Config file, one private.json that contains the private references (for backend configuration), and one public.json that has the private references stripped out. Nifty!
+processConfig can split out two versions of the Config file, one private.json that contains the private references (for backend configuration), and one public.json that has the private references stripped out. It also ensures that the file is valid JSON in the end. Nifty!
 
 Finally, it can output a javascript file that can be wrapped into any framework you like.
 
@@ -43,30 +43,27 @@ Finally, it can output a javascript file that can be wrapped into any framework 
 
 ```js
 processConfig: {
-	source: {
+
+	'public': {
+		src: 'config.json',
+		dest: 'config.public.json'
+	},
+
+	'private': {
+
 		options: {
-			src: 'PATH/TO/YOUR/CONFIGS/config.json',
-				destinations: [
-					{
-						type: 'private',
-						path: 'PATH/TO/YOUR/CONFIGS/gen/private.json'
-					},
-					{
-						type: 'public',
-						path: 'PATH/TO/YOUR/CONFIGS/gen/public.json'
-					},
-					{
-						type: 'public',
-						path: 'PATH/TO/YOUR/CLASSES/Config.js',
-						wrapper: "/******* GENERATED, DO NOT MODIFY *******/\n core.Module('<%= pkg.name %>.Config', $CONFIG);"
-					}
-				]
-			}
-		}
+			type: 'private'
+		},
+
+		src: 'config.json',
+		dest: 'config.private.json'
+
 	}
+	
+}
 ```
 
-This example outputs two configs in JSON format, and also outputs a Config.js file that wraps the JSON in a Zynga core Module.
+This example outputs two configs in JSON format, both inheriting from root.json through the "extends" syntax.
 
 ## inlineEverything
 
@@ -96,76 +93,39 @@ Type: `String`
 
 Default: `source`
 
-The location all of your partials are relative to.
-For example: "source".
-
-### partials
-Type: `Array`
-Default: []
-
-The different HTML partials you want to inline.
-For example: "non-retina", "retina".
+The location all of your included files are relative to. If your index.html is in source/index.html, that would be "source".
 
 ### tags
 Type: `Object`
 Default: {}
 
 #### link
-Type: `Boolean|Object`
-Default: false
+Type: `Boolean|Function`
+Default: true
      
- * engines
-   This specifically allows fine control over Generated CSS Permutations.
-   It is used in conjuction with our Vendor Permutator.
-   When false, it just inlines.
-     
-   ##### For example:
-   If you add an array of "engines" ['webkit','trident'] to "tags.link", it will create vendor-specific permutations (NAME.webkit.css, NAME.trident.css).
+Enables or disables the inlining of stylesheets. If you want to map a certain location to another one (i.e. "style.css" to "generated/style.css"), pass a function instead of "true". That function will then receive the found path, and allows you to return where to include from, like so:
 
 ```js
-link: {
-	engines: ['webkit','trident','gecko']
+link: function(src, engine) {
+	src = src.replace('/css/', '/css/generated/').replace(/\.css$/, '.' + engine + '.css');
+	return src;
 }
 ```
-     
- * rename
-   We commonly want to store these into unique folders, so:
-   If you add a rename function, you can rename your files however you want.
-   When false, just places them in the same location.
-     
-   ##### For example:
-   If you want the CSS to go into a /css/vendor directory, you would add "rename" to "tags.link":
 
-```js
-link: {
-	rename: function(src, engine) {
-		src = src.replace('/css/', '/css/vendor/').replace(/\.css$/, '.' + engine + '.css')
-		return src;
-	}
-}
-```
+Hint: grunt-cruncher will automatically search for vendor mutated versions of your CSS (i.e. style.webkit.css) and build a webkit-only build of your file then!
 
 #### script
-Type: `Object`
-Default: false
+Type: `Boolean|Function`
+Default: true
 
- * rename
-
-### Files
-Type: `Array`
-Default: []
-This is an array of Objects pointing to the directories you want scanned for inlining.
+Same as with link, if you want to map the sources files differently, pass a callback:
 
 ##### For example:
 ```js
-files: [
-	{
-		expand: true,
-		cwd: 'PATH/TO/YOUR/TEMPLATES',
-		src: '*.built.html',
-		dest: 'PATH/TO/YOUR/BUILD/'
-	}
-]
+script: function(src) {
+	src = src.replace('/js/', '/css/generated/');
+	return src;
+}
 ```
 
 ### Usage Example
@@ -199,21 +159,7 @@ source/
 inlineEverything: {
 	templates: {
 		options: {
-			relativeTo: 'source',
-			partials: ['non-retina', 'retina', 'pirate-version'],
-			tags: {
-				link: false,
-				script: {
-					rename: function(fileName) {
-
-						var extensionStart = fileName.lastIndexOf('.js');
-						var firstHalf = fileName.substr(0, extensionStart);
-						var secondHalf = fileName.substr(extensionStart);
-
-						return firstHalf + secondHalf;
-					}
-				}
-			}
+			relativeTo: 'source'
 		},
 
 		files: [

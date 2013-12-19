@@ -1,0 +1,7 @@
+{
+
+	"extends": "root.json",
+
+	"foo": 1, // oooh inline comment.
+	"secret": 123 /* private */
+}
