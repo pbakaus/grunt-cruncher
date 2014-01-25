@@ -196,6 +196,11 @@ module.exports = function(grunt) {
 			var images = [];
 			html = html.replace(/(<img[^\>]+src\=[\"\'])(?![^\"\']*\/\/)([^\"\']+)([\"\'][^\>]*\>)/g, function(full, start, fileName, end) {
 
+				// skip over base64
+				if (fileName.indexOf('base64') !== -1) {
+					return start + fileName + end;
+				}
+
 				// magic replacements for partials
 				if(partialPath) {
 					fileName = doPartialMagicToFileName(fileName, partialPath);
